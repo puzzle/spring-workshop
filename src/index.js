@@ -27,6 +27,8 @@ function showSlide(slideData) {
     .selectAll('div.slide')
     .data([slideData], (d) => d.pageNumber);
 
+  d3.select('title').text(slideData.title);
+
   slide
     .enter()
     .append('div')
