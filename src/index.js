@@ -35,7 +35,7 @@ function showSlide(slideData) {
     .attr('class', 'slide')
     .classed('main', (d) => d.isTitleSlide)
     .append('div')
-    .style('transform', 'scaleX(0.1)rotate(-10deg)')
+    .style('transform', 'scaleX(0.6)rotate(-5deg)')
     .html((d) => d.html)
     .call((el) => {
       el.selectAll('*')
@@ -73,7 +73,7 @@ function showSlide(slideData) {
     .exit()
     .transition()
     .duration(500)
-    .style('transform', 'scale(0.3)rotate(10deg)')
+    .style('transform', 'scale(0.8)rotate(5deg)')
     .style('opacity', 0)
     .remove();
 
@@ -150,7 +150,7 @@ function initPresentationHtml(html) {
     .on('click', (d) => showSlide(d))
     .transition()
     .duration(1000)
-    .delay((d, i) => i * 50)
+    .delay((d, i) => i * 10)
     .ease(d3.easeBackInOut)
     .attr('x', (d, i) => timelinePosition(i));
 

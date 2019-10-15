@@ -10,11 +10,7 @@ Khôi Tran tran@puzzle.ch
 
 Presentation materials:
 
-`git clone https://github.com/puzzle/spring-workshop`
-
-`npm i`
-
-`npm start`
+https://puzzle.github.io/spring-workshop [[github]](https://travis-ci.org/puzzle/spring-workshop)
 
 ---
 
@@ -26,11 +22,10 @@ Getting to know some tools of the Spring (Boot) ecosystem to make your life (hop
 
 ## Agenda morning
 
-* Quick introduction to Spring Boot
-* Setup an Openshift Project on techlab.openshift.ch
-* Deploy a basic Spring Boot application in your project
+* Introduction to Spring Boot and Spring Core
+* Basic Spring exercises
+* Deploy on OSE using fabric8
 * Deploy a Spring Boot Admin pod
-* Basic Spring Exercises
 
 ---
 
@@ -59,22 +54,36 @@ Spring Boot facilitates setup, configuration of spring applications.
 
 ---
 
-## Spring Boot vs classic JAVA web development
+## Classic Java web development
 
 ![classic](https://i1.wp.com/www.zoltanraffai.com/blog/wp-content/uploads/2018/07/process-of-running-a-web-application.png)
 
 ---
 
-## How does Spring Boot do that?
+## Spring Boot development
 
-* Component scanning
-* Standalone: fat jar/war, embedded tomcat/netty/undertow
-* Opinionated: Defaults, fallbacks
-* "starter" packages
+![classic](./src/spring-dev.png)
 
 ---
 
-## Most basic Spring Boot application
+## Alternatives
+
+* Eclipse Microprofile
+* Quarkus.io
+* Grails (built on Spring)
+
+---
+
+## How does Spring Boot do that?
+
+* *Component scanning*
+* *Standalone fat jar/war* (embedded tomcat/netty/undertow in jar)
+* *Opinionated* (defaults, fallbacks)
+* *starter packages* (i.e. spring-starter-web)
+
+---
+
+## Minimal Spring Boot application
 
 ```java
 @SpringBootApplication
@@ -94,7 +103,8 @@ public class MinimalApplication {
 
 ## Spring Boot Component Scan
 
-Spring Boot will scan the package of the application class and all subpackages of it for classes annotated with `@Component` and it's aliases `@Configuration`, `@Controller`, `@RestController`, `@Service`, `@Repository`, etc. process them.
+* Default: Scans the package + subpackages of `@SpringBootApplication`
+* Annotations: `@Component`, `@Configuration`, `@Controller`, `@RestController`, `@Service`, `@Repository`
 
 ---
 
@@ -117,7 +127,7 @@ Read more: [1](https://docs.spring.io/spring-boot/docs/current/reference/html/us
 
 ---
 
-## Spring Dependency injection
+## Dependency injection
 
 Dependency Injection is handled by Spring DI.
 It can inject objects annotated with `@Bean` and Spring `@Component` and alike.
@@ -127,6 +137,16 @@ It can inject objects annotated with `@Bean` and Spring `@Component` and alike.
 ## DI example
 
 Field based injection
+
+```java
+// HelloWorldService.java
+@Service
+public class HelloWorldService {
+  public String getMessage() {
+    return "Hello World";
+  }
+}
+```
 
 ```java
 // HelloWorldController.java
@@ -163,7 +183,50 @@ public class HelloWorldController {
 }
 ```
 
-Read more: [1](https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-spring-beans-and-dependency-injection.html) [2](https://www.baeldung.com/spring-dependency-injection)
+Read more: [[1]](https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-spring-beans-and-dependency-injection.html) [2](https://www.baeldung.com/spring-dependency-injection)
+
+---
+
+## DI conflict resolution
+
+```java
+@Service
+@Primary
+public class BeerService implements DrinkService {
+  // ...
+}
+```
+
+```java
+@Service
+@Qualifier("stayAwakeService")
+public class CoffeeService implements DrinkService {
+  // ...
+}
+```
+
+---
+
+## DI conflict resolution (2)
+
+```java
+@Controller
+public class DrinkController {
+  @Autowired
+  @Qualifier("stayAwakeService")
+  DrinkService myService; // CoffeeService - by @Qualifier anootation
+
+  @Autowired
+  DrinkService beerService; // BeerService - by field name
+
+  @Autowired
+  DrinkService service; // BeerService - by @Primary annotation
+
+  public Iterable<Drink> getAllDrinks() {
+    return repository.findAll();
+  }
+}
+```
 
 ---
 
@@ -173,7 +236,7 @@ Read more: [1](https://docs.spring.io/spring-boot/docs/current/reference/html/us
 * application-&lt;PROFILE&gt;.yml
 * application.yml
 
-[Documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html)
+Read more: [1](https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html)
 
 ---
 
@@ -210,12 +273,24 @@ public class BreweryProperties {
 }
 ```
 
+```java
+@Service
+public class BreweryService {
+  @Autowired
+  BreweryProperties breweryProperties;
+
+  public String getBreweryName() {
+    return breweryProperties.getName();
+  }
+}
+```
+
 ---
 
 ## Spring Profiles
 
-* env var `SPRING_PROFILES_ACTIVE=dev,local`
-* `java -Dspring.profile.active=dev,local`
+* env var `SPRING_PROFILES_ACTIVE=dev` (comma delimited)
+* `java -Dspring.profile.active=dev`
 * IntelliJ launch configuration
 * Programmatically: `SpringApplication.setAdditionalProfiles(...)`
 
@@ -226,7 +301,7 @@ public class BreweryProperties {
 `application-dev.yml`
 ```yaml
 spring.profiles.include:
-  # include application-local.yml
+  # include application-localdb.yml
   - localdb
   # include application-nosecurity.yml
   - nosecurity
@@ -239,6 +314,9 @@ spring.profiles.include:
 ```java
 @Configuration
 public class WebClientConfiguration {
+  @Value("${webclient.password}")
+  String password;
+
   @Profile("local")
   @Bean
   public WebClient webClientWithoutAuth() {
@@ -250,7 +328,7 @@ public class WebClientConfiguration {
   @Bean
   public WebClient webClientWithAuth() {
     return WebClient.builder()
-      .defaultHeaders(headers -> headers.setBasicAuth("user", "password"))
+      .defaultHeaders(headers -> headers.setBasicAuth("user", password))
       .build();
   }
 }
@@ -260,17 +338,24 @@ Read more: [1](https://docs.spring.io/spring-boot/docs/current/reference/html/bo
 
 ---
 
-## Setup a techlab project
+# Hands-On Spring Boot project
 
-* Checkout https://github.com/puzzle/beerio (or fork it for yourself!)
+* Checkout Beerio Example Project
 * Login & create an openshift project
 * Use fabric8 to deploy to openshift
 
 ---
 
+## Prerequisites
+
+* Java 11: with SDKMAN `sdk install java 11.0.3.hs-adpt`
+* [openshift client](http://docs.appuio.ch/en/latest/getting-started.html#cli)
+
+---
+
 ## Checkout beerio application
 
-* `git clone git@github.com:puzzle/beerio.git`
+* `git clone git@github.com:puzzle/beerio.git` / `git clone https://github.com/puzzle/beerio.git`
 * `mvn spring-boot:run` Start your application
 * Check http://localhost:8080 if it runs!
 
@@ -293,21 +378,39 @@ Read more: [1](https://docs.spring.io/spring-boot/docs/current/reference/html/bo
 
 # Exercise time!
 
+* CRUDs
+* Custom Queries
+
 ---
 
 ## Exercise 1 - some CRUD operations
 
-1. Add a REST endpoint to add / delete beers!
+1. Add a REST endpoint to add beers!
 2. Test it using swagger ui
 
-Hint: use `@PostMapping`, `@RequestBody`
+In `BeerController`:
+
+```java
+@PostMapping
+public void addBeer(@RequestBody Beer beer) {
+  // ...
+}
+
+```
 
 ---
 
-## Exercise 2 - leverage JPA repository magic
+## Exercise 2 - some CRUD operations (2)
 
-1. Add a REST endpoint which returns the top 10 beers with highest abv (alcohol by volume)
-2. Add a REST endpoint
+1. Add a REST endpoint to delete a beer by ID.
+2. Test it using swagger ui
+
+---
+
+
+## Exercise 3 - leverage JPA repository magic
+
+Add a REST endpoint which returns the top 10 beers with highest abv (alcohol by volume)
 
 Hint: [Method name keywords](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.query-methods.query-creation)
 
@@ -325,7 +428,7 @@ Spring uses Jackson `ObjectMapper` to serialize JSON.
 
 ## Exercise 4.1 - run Spring Boot Admin locally
 
-1. Checkout https://github.com/puzzle/spring-boot-admin
+1. Checkout https://github.com/puzzle/beerio-admin / `git@github.com:puzzle/beerio-admin.git`
 2. Edit `fabric8.namespace` in `pom.xml`
 3. Run `SpringBootAdminApplication` locally
 4. Check http://localhost:8081 if Spring Boot Admin runs
@@ -348,25 +451,29 @@ Spring uses Jackson `ObjectMapper` to serialize JSON.
 
 Hints: 
 
-`spring.boot.admin.client.url: http://spring-boot-admin:8081`
+`spring.boot.admin.client.url: http://beerio-admin:8081`
 
 `spring.boot.admin.client.instance.prefer-ip: true`
 
 ---
 
-## Lunchtime
+# Lunchtime
+
+![](https://www.memesmonkey.com/images/memesmonkey/de/debf03a2ea413094f0f6a4df2a1958ed.jpeg)
 
 ---
 
 # Spring Testing
 
-Why? Testing is hard.
+Why? Spring brings it's own testing framework.
+
+![](https://letmetrysoftwaretesting.files.wordpress.com/2018/12/tests.png?w=809)
 
 ---
 
 ## Things to know
 
-* Spring Tests is based on Mockito
+* Spring Tests is based on [Mockito](https://site.mockito.org/)
 * `@Autowire` will inject `@MockBean` and `@SpyBean` instead of their "real" counterparts.
 
 ---
@@ -377,10 +484,9 @@ Why? Testing is hard.
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class MyTests {
-
-	@Test
+  @Test
   public void contextLoads() {
-	}
+  }
 }
 ```
 
@@ -428,7 +534,8 @@ The smaller your context, the better!
 
 ```java
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = {BeerService.class}, properties = "brewery.name=Verein Roggemoser")
+@SpringBootTest(classes = {BeerService.class},
+  properties = "brewery.name=Verein Roggemoser")
 public class BeerioTests {
   // ...
 }
@@ -436,9 +543,11 @@ public class BeerioTests {
 
 ---
 
-## Further Spring Testing
+## Further Spring Testing resources
 
 * [MockMvc](https://spring.io/guides/gs/testing-web/)
+* [Spring Testing](https://docs.spring.io/spring/docs/current/spring-framework-reference/testing.html)
+* [Spring Testing Tutorial](https://www.baeldung.com/spring-boot-testing)
 
 ---
 
@@ -459,6 +568,16 @@ Spring supports AOP without [AspectJ weaving](https://www.baeldung.com/aspectj).
 ## How does Spring do it?
 
 Access to Beans are being proxied by Spring.
+
+---
+
+## When to use AOP
+
+* Monitoring
+* Profiling
+* Auditing
+* Security
+* ...
 
 ---
 
@@ -519,7 +638,7 @@ public class ExampleAspects2 {
 }
 ```
 
-Read more: [1] (https://docs.spring.io/spring/docs/5.1.x/spring-framework-reference/core.html#aop) [2](https://www.baeldung.com/spring-aop)
+Read more: [1](https://docs.spring.io/spring/docs/5.1.x/spring-framework-reference/core.html#aop) [2](https://www.baeldung.com/spring-aop)
 
 ---
 
@@ -533,9 +652,7 @@ Hint: `System.currentMillis()` to take time or Springs `org.springframework.util
 
 # Spring Cache Abstraction
 
-Why?
-
-Sometimes performance does matter.
+> Sometimes performance does matter.
 
 ---
 
