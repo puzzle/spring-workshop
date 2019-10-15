@@ -8,9 +8,13 @@ Khôi Tran tran@puzzle.ch
 
 ## First things first
 
+Rocket.chat:
+
+https://chat.puzzle.ch/channel/spring-workshop
+
 Presentation materials:
 
-https://puzzle.github.io/spring-workshop [[github]](https://travis-ci.org/puzzle/spring-workshop)
+https://puzzle.github.io/spring-workshop [[github]](https://github.com/puzzle/spring-workshop)
 
 ---
 
