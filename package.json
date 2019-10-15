@@ -1,0 +1,31 @@
+{
+  "name": "d3-techworkshop-presentation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "parcel serve --port 2000 ./src/index.html",
+    "build": "parcel build ./src/index.html --public-url ./",
+    "lint": "eslint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "babel-runtime": "^6.26.0",
+    "css-reset-and-normalize": "^2.1.0",
+    "d3": "^5.11.0",
+    "github-markdown-css": "^3.0.1",
+    "highlight.js": "^9.15.10",
+    "parcel-bundler": "^1.12.3",
+    "regenerator-runtime": "^0.13.3",
+    "utf8": "^3.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^6.3.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2",
+    "marked": "^0.7.0",
+    "sass": "^1.23.0-module.beta.1"
+  }
+}
