@@ -374,7 +374,7 @@ Read more: [1](https://docs.spring.io/spring-boot/docs/current/reference/html/bo
 
 ## Fork & checkout & deploy
 
-* `git clone https://github.com/puzzle/sbw-2019-example`
+* `git clone https://github.com/puzzle/beerio`
 * Edit `fabric8.namespace` in `pom.xml` to your openshift project
 * `mvn fabric8:deploy`
 
