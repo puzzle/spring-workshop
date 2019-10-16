@@ -758,6 +758,66 @@ Hint: Use `FluxProcessor<Beer, Beer>` to create a stream. Use `FluxProcessor::si
 
 ---
 
+# Spring Security
+
+---
+
+## Dependencies
+
+```
+<!-- Spring Security Core -->
+<dependency>
+    <groupId>org.springframework.security</groupId>
+    <artifactId>spring-security-core</artifactId>
+</dependency>
+
+<!-- Spring Security Config -->
+<dependency>
+    <groupId>org.springframework.security</groupId>
+    <artifactId>spring-security-config</artifactId>
+</dependency>
+
+<!-- Spring Security Web -->
+<dependency>
+    <groupId>org.springframework.security</groupId>
+    <artifactId>spring-security-web</artifactId>
+</dependency>
+```
+
+---
+
+## Defaults
+
+`@EnableWebSecurity` annotation must be present.
+
+Everything is protected.
+A user with username "user" is automatically generated.
+
+The password is displayed during start of the application.
+
+---
+
+## Configuration
+
+```java
+@EnableWebSecurity
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+  @Override
+  protected void configure(HttpSecurity http) throws Exception {
+    super.configure(http);
+
+    http.authorizeRequests()
+        .antMatchers("/api/country").permitAll()
+        .antMatchers("/api/beer").hasRole("USER");
+
+
+  }
+}
+```
+
+---
+
 # Thank you & Feedback?
 
 ![Stupid IDEA!](./static/thankyou.jpg)
