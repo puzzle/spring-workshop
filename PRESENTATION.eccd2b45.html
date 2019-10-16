@@ -1,0 +1,343 @@
+<h1 id="spring-boot-workshop">Spring Boot workshop</h1><p>17.10.2019</p><p>Khôi Tran <a href="mailto:tran@puzzle.ch">tran@puzzle.ch</a></p><hr><h2 id="first-things-first">First things first</h2><p>Rocket.chat:</p><p><a href="https://chat.puzzle.ch/channel/spring-workshop">https://chat.puzzle.ch/channel/spring-workshop</a></p><p>Presentation materials:</p><p><a href="https://puzzle.github.io/spring-workshop">https://puzzle.github.io/spring-workshop</a> <a href="https://github.com/puzzle/spring-workshop">[github]</a></p><hr><h2 id="goals">Goals</h2><p>Getting to know some tools of the Spring (Boot) ecosystem to make your life (hopefully) easier.</p><hr><h2 id="agenda-morning">Agenda morning</h2><ul>
+<li>Introduction to Spring Boot and Spring Core</li>
+<li>Basic Spring exercises</li>
+<li>Deploy on OSE using fabric8</li>
+<li>Deploy a Spring Boot Admin pod</li>
+</ul><hr><h2 id="agenda-afternoon">Agenda afternoon</h2><ul>
+<li><p>Testing</p>
+</li>
+<li><p>AOP</p>
+</li>
+<li><p>Cache abstraction</p>
+</li>
+<li><p>WebFlux / WebClient</p>
+</li>
+<li><p>Free time to experiment and explore</p>
+</li>
+</ul><hr><h2 id="quick-introduction-to-spring">Quick Introduction to Spring</h2><p><img src="https://i0.wp.com/www.zoltanraffai.com/blog/wp-content/uploads/2018/07/what-is-spring-boot.png" alt="Spring"></p><hr><h2 id="what-is-spring-boot">What is Spring Boot?</h2><p>Spring applications were a mess of XML files meshed together.</p><p>Spring Boot facilitates setup, configuration of spring applications.</p><hr><h2 id="classic-java-web-development">Classic Java web development</h2><p><img src="https://i1.wp.com/www.zoltanraffai.com/blog/wp-content/uploads/2018/07/process-of-running-a-web-application.png" alt="classic"></p><hr><h2 id="spring-boot-development">Spring Boot development</h2><p><img src="spring-dev.e0b3455e.png" alt="classic"></p><hr><h2 id="alternatives">Alternatives</h2><ul>
+<li>Eclipse Microprofile</li>
+<li>Quarkus.io</li>
+<li>Grails (built on Spring)</li>
+</ul><hr><h2 id="how-does-spring-boot-do-that">How does Spring Boot do that?</h2><ul>
+<li><em>Component scanning</em></li>
+<li><em>Standalone fat jar/war</em> (embedded tomcat/netty/undertow in jar)</li>
+<li><em>Opinionated</em> (defaults, fallbacks)</li>
+<li><em>starter packages</em> (i.e. spring-starter-web)</li>
+</ul><hr><h2 id="minimal-spring-boot-application">Minimal Spring Boot application</h2><pre><code class="language-java">@SpringBootApplication
+@RestController
+public class MinimalApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MinimalApplication.class, args);
+    }
+  @GetMapping
+  public String index() {
+    return &quot;Hello World&quot;;
+  }
+}</code></pre><hr><h2 id="spring-boot-component-scan">Spring Boot Component Scan</h2><ul>
+<li>Default: Scans the package + subpackages of <code>@SpringBootApplication</code></li>
+<li>Annotations: <code>@Component</code>, <code>@Configuration</code>, <code>@Controller</code>, <code>@RestController</code>, <code>@Service</code>, <code>@Repository</code></li>
+</ul><hr><h2 id="spring-boot-component-scan-2">Spring Boot Component Scan (2)</h2><p>This means that most spring related things don&#39;t matter in which file they are configured, as long as the class is properly annotated.</p><pre><code class="language-java">// HelloWorldController.java
+@RestController
+public class HelloWorldController {
+  @GetMapping
+  public String printHelloWorld() {
+    return &quot;Hello World&quot;;
+  }
+}</code></pre><p>Read more: <a href="https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-using-springbootapplication-annotation.html">1</a> <a href="https://www.baeldung.com/spring-component-scanning">2</a></p><hr><h2 id="dependency-injection">Dependency injection</h2><p>Dependency Injection is handled by Spring DI.
+It can inject objects annotated with <code>@Bean</code> and Spring <code>@Component</code> and alike.</p><hr><h2 id="di-example">DI example</h2><p>Field based injection</p><pre><code class="language-java">// HelloWorldService.java
+@Service
+public class HelloWorldService {
+  public String getMessage() {
+    return &quot;Hello World&quot;;
+  }
+}</code></pre><pre><code class="language-java">// HelloWorldController.java
+@RestController
+public class HelloWorldController {
+  @Autowired
+  private HelloWorldService helloWorldService;
+
+  @GetMapping
+  public String printHelloWorld() {
+    return helloWorldService.getMessage();
+  }
+}</code></pre><hr><h2 id="di-example-1">DI example</h2><p>Constructor based injection</p><pre><code class="language-java">// HelloWorldController.java
+@RestController
+public class HelloWorldController {
+
+  private HelloWorldService helloWorldService;
+
+  // No need for any annotations
+  public HelloWorldController(HelloWorldService helloWorldService) {
+    this.helloWorldService = helloWorldService;
+  }
+  // ...
+}</code></pre><p>Read more: <a href="https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-spring-beans-and-dependency-injection.html">[1]</a> <a href="https://www.baeldung.com/spring-dependency-injection">2</a></p><hr><h2 id="di-conflict-resolution">DI conflict resolution</h2><pre><code class="language-java">@Service
+@Primary
+public class BeerService implements DrinkService {
+  // ...
+}</code></pre><pre><code class="language-java">@Service
+@Qualifier(&quot;stayAwakeService&quot;)
+public class CoffeeService implements DrinkService {
+  // ...
+}</code></pre><hr><h2 id="di-conflict-resolution-2">DI conflict resolution (2)</h2><pre><code class="language-java">@Controller
+public class DrinkController {
+  @Autowired
+  @Qualifier(&quot;stayAwakeService&quot;)
+  DrinkService myService; // CoffeeService - by @Qualifier anootation
+
+  @Autowired
+  DrinkService beerService; // BeerService - by field name
+
+  @Autowired
+  DrinkService service; // BeerService - by @Primary annotation
+
+  public Iterable&lt;Drink&gt; getAllDrinks() {
+    return repository.findAll();
+  }
+}</code></pre><hr><h2 id="externalized-configuration">Externalized configuration</h2><ul>
+<li>Environment variables</li>
+<li>application-&lt;PROFILE&gt;.yml</li>
+<li>application.yml</li>
+</ul><p>Read more: <a href="https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html">1</a></p><hr><h2 id="retrieve-configuration">Retrieve Configuration</h2><pre><code class="language-java">@Value(&quot;${brewery.name}&quot;)
+private String breweryName;
+
+// with default value
+@Value(&quot;${brewery.defaultBeer:Puzzle Spezialbräu}&quot;)
+private String defaultBeer;</code></pre><pre><code class="language-yaml">// application.yml
+brewery:
+  name: Trappistes de Puzzle
+  defaultBeer: Puzzle Malz Spezial</code></pre><hr><h2 id="configuration-property-classes">Configuration property classes</h2><pre><code class="language-java">@Component
+@ConfigurationProperties(prefix = &quot;brewery&quot;)
+@Data
+public class BreweryProperties {
+  private boolean brewsCoffeeToo;
+  private String defaultBeer;
+  private String name;
+}</code></pre><pre><code class="language-java">@Service
+public class BreweryService {
+  @Autowired
+  BreweryProperties breweryProperties;
+
+  public String getBreweryName() {
+    return breweryProperties.getName();
+  }
+}</code></pre><hr><h2 id="spring-profiles">Spring Profiles</h2><ul>
+<li>env var <code>SPRING_PROFILES_ACTIVE=dev</code> (comma delimited)</li>
+<li><code>java -Dspring.profile.active=dev</code></li>
+<li>IntelliJ launch configuration</li>
+<li>Programmatically: <code>SpringApplication.setAdditionalProfiles(...)</code></li>
+</ul><hr><h2 id="spring-profiles-1">Spring Profiles</h2><p><code>application-dev.yml</code></p><pre><code class="language-yaml">spring.profiles.include:
+  # include application-localdb.yml
+  - localdb
+  # include application-nosecurity.yml
+  - nosecurity</code></pre><hr><h2 id="spring-beans-by-profile">Spring Beans by Profile</h2><pre><code class="language-java">@Configuration
+public class WebClientConfiguration {
+  @Value(&quot;${webclient.password}&quot;)
+  String password;
+
+  @Profile(&quot;local&quot;)
+  @Bean
+  public WebClient webClientWithoutAuth() {
+    return WebClient.builder()
+      .build();
+  }
+
+  @Profile(&quot;!local&quot;)
+  @Bean
+  public WebClient webClientWithAuth() {
+    return WebClient.builder()
+      .defaultHeaders(headers -&gt; headers.setBasicAuth(&quot;user&quot;, password))
+      .build();
+  }
+}</code></pre><p>Read more: <a href="https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-profiles.html">1</a> <a href="https://www.baeldung.com/spring-profiles">2</a></p><hr><h1 id="hands-on-spring-boot-project">Hands-On Spring Boot project</h1><ul>
+<li>Checkout Beerio Example Project</li>
+<li>Login &amp; create an openshift project</li>
+<li>Use fabric8 to deploy to openshift</li>
+</ul><hr><h2 id="prerequisites">Prerequisites</h2><ul>
+<li>Java 11: with SDKMAN <code>sdk install java 11.0.3.hs-adpt</code></li>
+<li><a href="http://docs.appuio.ch/en/latest/getting-started.html#cli">openshift client</a></li>
+</ul><hr><h2 id="checkout-beerio-application">Checkout beerio application</h2><ul>
+<li><code>git clone git@github.com:puzzle/beerio.git</code> / <code>git clone https://github.com/puzzle/beerio.git</code></li>
+<li><code>mvn spring-boot:run</code> Start your application</li>
+<li>Check <a href="http://localhost:8080">http://localhost:8080</a> if it runs!</li>
+</ul><hr><h2 id="login--create-an-openshift-project">Login &amp; create an openshift project</h2><ul>
+<li><code>oc login https://techlab.openshift.ch</code></li>
+<li><code>oc new-project sbw-2019-$(whoami)</code></li>
+</ul><hr><h2 id="fork--checkout--deploy">Fork &amp; checkout &amp; deploy</h2><ul>
+<li><code>git clone https://github.com/puzzle/beerio</code></li>
+<li>Edit <code>fabric8.namespace</code> in <code>pom.xml</code> to your openshift project</li>
+<li><code>mvn fabric8:deploy</code></li>
+</ul><hr><h1 id="exercise-time">Exercise time!</h1><ul>
+<li>CRUDs</li>
+<li>Custom Queries</li>
+</ul><hr><h2 id="exercise-1---some-crud-operations">Exercise 1 - some CRUD operations</h2><ol>
+<li>Add a REST endpoint to add beers!</li>
+<li>Test it using swagger ui</li>
+</ol><p>In <code>BeerController</code>:</p><pre><code class="language-java">@PostMapping
+public void addBeer(@RequestBody Beer beer) {
+  // ...
+}
+</code></pre><hr><h2 id="exercise-2---some-crud-operations-2">Exercise 2 - some CRUD operations (2)</h2><ol>
+<li>Add a REST endpoint to delete a beer by ID.</li>
+<li>Test it using swagger ui</li>
+</ol><hr><h2 id="exercise-3---leverage-jpa-repository-magic">Exercise 3 - leverage JPA repository magic</h2><p>Add a REST endpoint which returns the top 10 beers with highest abv (alcohol by volume)</p><p>Hint: <a href="https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.query-methods.query-creation">Method name keywords</a></p><p>Hint: <a href="https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#repositories.limit-query-result">Limiting results</a></p><hr><h2 id="exercise-3---di-format-json">Exercise 3 - DI format JSON</h2><p>Spring uses Jackson <code>ObjectMapper</code> to serialize JSON.</p><ol>
+<li>Use <code>@Bean</code> to overwrite the ObjectMapper that pretty prints JSON.</li>
+</ol><hr><h2 id="exercise-41---run-spring-boot-admin-locally">Exercise 4.1 - run Spring Boot Admin locally</h2><ol>
+<li>Checkout <a href="https://github.com/puzzle/beerio-admin">https://github.com/puzzle/beerio-admin</a> / <code>git@github.com:puzzle/beerio-admin.git</code></li>
+<li>Edit <code>fabric8.namespace</code> in <code>pom.xml</code></li>
+<li>Run <code>SpringBootAdminApplication</code> locally</li>
+<li>Check <a href="http://localhost:8081">http://localhost:8081</a> if Spring Boot Admin runs</li>
+</ol><hr><h2 id="exercise-42---connect-beerio-app-to-sb-admin">Exercise 4.2 - connect Beerio App to SB Admin</h2><ol>
+<li>Add <a href="https://codecentric.github.io/spring-boot-admin/2.1.6/#register-clients-via-spring-boot-admin">Spring Boot Admin Client dependencies</a> to the Beerio App.</li>
+<li>Add configuration property <code>spring.boot.admin.client.url: http://localhost:8081</code></li>
+<li>Check if the application properly registers itself in Spring Boot Admin!</li>
+</ol><hr><h2 id="exercise-43---spring-boot-admin-on-openshift">Exercise 4.3 - Spring Boot Admin on openshift</h2><ol>
+<li>Use <code>mvn fabric8:deploy</code> to deploy spring-boot-admin to openshift</li>
+<li>Configure Beerio App to connect to spring-boot-admin</li>
+<li>Use Spring Profiles to distinguish between local and other environments!</li>
+</ol><p>Hints: </p><p><code>spring.boot.admin.client.url: http://beerio-admin:8081</code></p><p><code>spring.boot.admin.client.instance.prefer-ip: true</code></p><hr><h1 id="lunchtime">Lunchtime</h1><p><img src="https://www.memesmonkey.com/images/memesmonkey/de/debf03a2ea413094f0f6a4df2a1958ed.jpeg" alt=""></p><hr><h1 id="spring-testing">Spring Testing</h1><p>Why? Spring brings it&#39;s own testing framework.</p><p><img src="https://letmetrysoftwaretesting.files.wordpress.com/2018/12/tests.png?w=809" alt=""></p><hr><h2 id="things-to-know">Things to know</h2><ul>
+<li>Spring Tests is based on <a href="https://site.mockito.org/">Mockito</a></li>
+<li><code>@Autowire</code> will inject <code>@MockBean</code> and <code>@SpyBean</code> instead of their &quot;real&quot; counterparts.</li>
+</ul><hr><h2 id="minimal-setup">Minimal setup</h2><pre><code class="language-java">@RunWith(SpringRunner.class)
+@SpringBootTest
+public class MyTests {
+  @Test
+  public void contextLoads() {
+  }
+}</code></pre><p>Caveats: Will initialize the whole Spring Boot application (and it will take a long time).</p><p>--&gt; It is recommended that you only load and test parts of your application.</p><hr><h2 id="class-context">Class context</h2><pre><code class="language-java">@RunWith(SpringRunner.class)
+@SpringBootTest(classes = {BeerService.class})
+public class BeerioTests {
+
+  @Autowired
+  BeerService beerService;
+
+  @MockBean
+  BeerRepository beerRepository;
+
+  @Test
+  public void beerServiceTest() {
+  // Mock dependencies
+  when(beerRepository.findAll())
+    .thenReturn(singleton(Beer.builder().name(&quot;Bärner Müntschi&quot;).build()));
+
+  // Asserts
+  assertThat(beerService.findAll())
+    .hasSize(1)
+    .extracting(Beer::getName)
+    .containsExactly(&quot;Bärner Müntschi&quot;);
+
+    verify(beerRepository, times(1)).findAll();
+  }
+}</code></pre><p>The smaller your context, the better!</p><hr><h2 id="custom-testing-properties">Custom testing properties</h2><pre><code class="language-java">@RunWith(SpringRunner.class)
+@SpringBootTest(classes = {BeerService.class},
+  properties = &quot;brewery.name=Verein Roggemoser&quot;)
+public class BeerioTests {
+  // ...
+}</code></pre><hr><h2 id="further-spring-testing-resources">Further Spring Testing resources</h2><ul>
+<li><a href="https://spring.io/guides/gs/testing-web/">MockMvc</a></li>
+<li><a href="https://docs.spring.io/spring/docs/current/spring-framework-reference/testing.html">Spring Testing</a></li>
+<li><a href="https://www.baeldung.com/spring-boot-testing">Spring Testing Tutorial</a></li>
+</ul><hr><h1 id="spring-aop">Spring AOP</h1><p>Why?</p><p>Further separation of business and other(?) code.</p><blockquote>
+<p>With great power comes great responsiblity. - Uncle Ben</p>
+</blockquote><hr><h2 id="things-to-know-1">Things to know</h2><p>Spring supports AOP without <a href="https://www.baeldung.com/aspectj">AspectJ weaving</a>... BUT only on Spring managed <code>@Beans</code>.</p><h2 id="how-does-spring-do-it">How does Spring do it?</h2><p>Access to Beans are being proxied by Spring.</p><hr><h2 id="when-to-use-aop">When to use AOP</h2><ul>
+<li>Monitoring</li>
+<li>Profiling</li>
+<li>Auditing</li>
+<li>Security</li>
+<li>...</li>
+</ul><hr><h2 id="all-aspectj-pointcuts-are-supported">All AspectJ PointCuts are supported</h2><h3 id="executions">Executions</h3><pre><code class="language-java">@Aspect
+@Component
+public class ExampleAspects {
+  @Before(&quot;execution(* ch.puzzle..*.*(..))&quot;)
+  void onBefore(JointPoint jp) {
+  }
+
+  @After(&quot;execution(* ch.puzzle..*.*(..))&quot;)
+  void onAfter(JointPoint jp) {
+  }
+
+}</code></pre><hr><pre><code class="language-java">@Aspect
+@Component
+@Slf4j
+public class ExampleAspects2 {
+  @Around(&quot;execution(* ch.puzzle..*.*(..))&quot;)
+  void around(ProceedingJointPoint jp) {
+    return jp.proceed();
+  }
+
+  @AfterThrowing(pointcut = &quot;execution(public * ch.puzzle..*.*(..))&quot;, throwing = &quot;e&quot;)
+  void onException(Exception e) {
+    // Additional error handling
+  }
+}</code></pre><hr><h3 id="annotations">Annotations</h3><pre><code class="language-java">@Aspect
+@Component
+@Slf4j
+public class ExampleAspects2 {
+  @Around(&quot;@annotation(org.springframework.web.bind.annotation.GetMapping)&quot;)
+  Object getOperations(ProceedingJoinPoint joinPoint) throws Throwable {
+    log.trace(&quot;Before&quot;);
+    Object result = joinPoint.proceed();
+    log.trace(&quot;After&quot;);
+    return result;
+  }
+}</code></pre><p>Read more: <a href="https://docs.spring.io/spring/docs/5.1.x/spring-framework-reference/core.html#aop">1</a> <a href="https://www.baeldung.com/spring-aop">2</a></p><hr><h2 id="aop-exercise">AOP exercise</h2><p>Use <code>@Around</code> to measure time used in <code>CountryController::findAllCountries()</code></p><p>Hint: <code>System.currentMillis()</code> to take time or Springs <code>org.springframework.util.StopWatch</code> to measure time.</p><hr><h1 id="spring-cache-abstraction">Spring Cache Abstraction</h1><blockquote>
+<p>Sometimes performance does matter.</p>
+</blockquote><hr><h2 id="how-does-spring-cache-work">How does Spring Cache work?</h2><ol>
+<li>Add to an <code>@Configuration</code> class the <code>@EnableCaching</code> annotation</li>
+<li>(optional) configure a more sophisticated caching library (Caffeine, EhCache, ...)</li>
+<li>Annotate method to be cached with <code>@Cacheable(&quot;myCacheName&quot;)</code></li>
+<li>Done!</li>
+</ol><p>Read more: <a href="https://docs.spring.io/spring/docs/5.1.x/spring-framework-reference/integration.html#cache">1</a> <a href="https://www.baeldung.com/spring-cache-tutorial">2</a></p><hr><h2 id="cache-exercise">Cache exercise</h2><p>Use <code>@Cacheable</code> on <code>CountryService::findAllCountries()</code>.
+See improved performance thanks to your AOP logging!</p><hr><h2 id="bonus-exercise">Bonus exercise</h2><p>Try to use Spring Cache with Caffeine or EhCache as caching backend.</p><hr><h1 id="reactive-programming-spring-webflux--webclient">Reactive programming: Spring WebFlux &amp; WebClient</h1><p>Reactive programming in Spring.</p><p><a href="https://gist.github.com/staltz/868e7e9bc2a7b8c1f754">The introduction to Reactive Programming</a></p><p>Similar to:</p><ul>
+<li>RxJs from angular</li>
+<li>RxJava</li>
+<li>Rx.Net</li>
+</ul><hr><h2 id="what-is-reactive-programming">What is reactive programming?</h2><blockquote>
+<p>Reactive programming is programming with asynchronous data streams.</p>
+</blockquote><blockquote>
+<p>Reactive programming libraries give you a toolbox to work with those streams.</p>
+</blockquote><hr><h2 id="traditional-vs-reactive">Traditional vs reactive</h2><p><img src="https://howtodoinjava.com/wp-content/uploads/2019/02/Blocking-request-processing.png" alt="Traditional programming"></p><hr><h2 id="traditional-vs-reactive-2">Traditional vs reactive (2)</h2><p><img src="https://howtodoinjava.com/wp-content/uploads/2019/02/Non-blocking-request-processing.png" alt="Reactive programming"></p><hr><h2 id="comparison">Comparison</h2><p>Reactive has</p><ul>
+<li>fewer threads for same performance</li>
+<li>if you get your head around Rx, then code can be more concise</li>
+</ul><hr><h2 id="webflux-exercise">WebFlux exercise</h2><p>Make a server sent event stream with this signature:</p><pre><code class="language-java">@GetMapping(value = &quot;beers&quot;, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+@ApiOperation(&quot;beers&quot;)
+public Flux&lt;ServerSentEvent&lt;Beer&gt;&gt; beerAnnouncer() {
+  // Send all 3 seconds a beer in NON-BLOCKING manner (don&#39;t use Thread.sleep)
+}</code></pre><hr><h2 id="hints">Hints</h2><ol>
+<li>Use Flux.interval() to create a interval stream</li>
+<li>Use Flux.fromIterable() to create a beer stream</li>
+<li>Use Flux.zip() to combine</li>
+</ol><hr><h2 id="webflux-exercise-2">WebFlux exercise 2</h2><ol>
+<li>Create a <code>@PutMapping</code> for users to recommend a beer by ID.</li>
+<li>Create a stream similar to exercise 1 for recommended beers.</li>
+</ol><p>Hint: Use <code>FluxProcessor&lt;Beer, Beer&gt;</code> to create a stream. Use <code>FluxProcessor::sink()</code> for a way to recommend beers.</p><hr><h1 id="spring-security">Spring Security</h1><hr><h2 id="dependencies">Dependencies</h2><pre><code>&lt;!-- Spring Security Core --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.security&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-security-core&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;!-- Spring Security Config --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.security&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-security-config&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;!-- Spring Security Web --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.security&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-security-web&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre><hr><h2 id="defaults">Defaults</h2><p><code>@EnableWebSecurity</code> annotation must be present.</p><p>Everything is protected.
+A user with username &quot;user&quot; is automatically generated.</p><p>The password is displayed during start of the application.</p><hr><h2 id="configuration">Configuration</h2><pre><code class="language-java">@EnableWebSecurity
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+  @Override
+  protected void configure(HttpSecurity http) throws Exception {
+    super.configure(http);
+
+    http.authorizeRequests()
+        .antMatchers(&quot;/api/country&quot;).permitAll()
+        .antMatchers(&quot;/api/beer&quot;).hasRole(&quot;USER&quot;);
+
+
+  }
+}</code></pre><hr><h1 id="thank-you--feedback">Thank you &amp; Feedback?</h1><p><img src="thankyou.0c78f6ba.jpg" alt="Stupid IDEA!"></p>
