@@ -749,6 +749,15 @@ public Flux<ServerSentEvent<Beer>> beerAnnouncer() {
 
 ---
 
+## WebFlux exercise 2
+
+1. Create a `@PutMapping` for users to recommend a beer by ID.
+2. Create a stream similar to exercise 1 for recommended beers.
+
+Hint: Use `FluxProcessor<Beer, Beer>` to create a stream. Use `FluxProcessor::sink()` for a way to recommend beers.
+
+---
+
 # Thank you & Feedback?
 
 ![Stupid IDEA!](./static/thankyou.jpg)
