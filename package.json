@@ -16,7 +16,7 @@
     "css-reset-and-normalize": "^2.1.0",
     "d3": "^5.11.0",
     "github-markdown-css": "^3.0.1",
-    "highlight.js": "^9.15.10",
+    "highlight.js": "^10.4.1",
     "parcel-bundler": "^1.12.3",
     "regenerator-runtime": "^0.13.3",
     "utf8": "^3.0.0"
